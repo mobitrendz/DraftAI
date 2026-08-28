@@ -1,0 +1,41 @@
+name: Test Coverage
+
+on:
+  push:
+    branches: [ master, stage, develop ]
+  pull_request:
+    branches: [ master, stage, develop ]
+
+jobs:
+  coverage:
+    name: Unit Tests & Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Commit coverage changes
+        if: github.event_name == 'push'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md
+          if ! git diff --cached --quiet README.md; then
+            git commit -m "docs: auto-update test coverage [skip ci]"
+            git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          else
+            echo "No changes to README.md"
+          fi

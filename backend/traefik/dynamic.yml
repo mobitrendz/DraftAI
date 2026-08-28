@@ -1,0 +1,15 @@
+http:
+  routers:
+    traefik:
+      rule: "Host(`traefik.fastapi-template.test`)"
+      service: api@internal
+
+    backend:
+      rule: "Host(`api.fastapi-template.test`)"
+      service: backend
+
+  services:
+    backend:
+      loadBalancer:
+        servers:
+          - url: "http://backend:8000"

@@ -1,0 +1,65 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^site/
+      - id: end-of-file-fixer
+        exclude: ^site/
+      - id: check-yaml
+      - id: check-added-large-files
+
+  # Ruff: Handles both linting and formatting instantly
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.11
+    hooks:
+      - id: ruff
+        args: [ --fix ]
+      - id: ruff-format
+
+  # Mypy: Using the mirror ensures a clean environment
+  # - repo: https://github.com/pre-commit/mirrors-mypy # or your ty hook
+  #   rev: v1.20.1
+  #   hooks:
+  #     - id: mypy
+  #       args: ["--config-file", "pyproject.toml"]
+  #       # THIS IS THE KEY: Pre-commit needs to 'see' these to resolve imports
+  #       additional_dependencies:
+  #         - types-pyjwt
+  #         - types-passlib
+  #         - fastapi
+  #         - pydantic-settings
+  #         - sqlmodel
+
+  - repo: local
+    hooks:
+      - id: ty-check
+        name: ty check
+        entry: uv run mypy app
+        language: system
+        pass_filenames: false
+        always_run: true
+
+  # Bandit: Security-focused linting
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml", "-r", "app"]
+        additional_dependencies: ["bandit[toml]"]
+
+  # uv-lock: Ensures your lockfile is always synced with pyproject.toml
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.11.7
+    hooks:
+      - id: uv-lock
+
+  # Zensical: Build check for the documentation site
+  - repo: local
+    hooks:
+      - id: zensical-check
+        name: zensical build check
+        entry: uv run zensical build
+        language: system
+        pass_filenames: false
+        always_run: true

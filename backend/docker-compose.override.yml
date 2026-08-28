@@ -1,0 +1,45 @@
+services:
+  traefik:
+    volumes:
+      - ./traefik/dynamic.local.yml:/etc/traefik/dynamic.yml:ro
+
+  backend:
+    # Enable Hot Reload by mounting local source code
+    volumes:
+      - ./app:/app/app
+      - ./scripts:/app/scripts
+      - ./alembic:/app/alembic
+    # Override production 'run' with development 'dev'
+    ports:
+      - "8000:8000"
+    command: ["fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
+    env_file:
+      - .env
+    environment:
+      - WATCHFILES_FORCE_POLLING=true
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_ui
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_SESSION_EXPIRATION: 720
+    ports:
+      - "5050:80"
+    networks:
+      - default
+      - proxy
+    depends_on:
+      - db
+
+  mailcatcher:
+    image: schickling/mailcatcher
+    networks:
+      - default
+      - proxy
+    ports:
+      - "1080:1080"
+      - "1025:1025"

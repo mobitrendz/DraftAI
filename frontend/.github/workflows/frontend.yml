@@ -1,0 +1,48 @@
+name: Frontend Code Quality
+
+on:
+  push:
+    branches: [ master, stage, develop ]
+  pull_request:
+    branches: [ master, stage, develop ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Pre-commit Hooks
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files
+
+      - name: Verify API Client Sync
+        run: |
+          # If openapi.json exists, we can verify sync without a live backend
+          if [ -f "openapi.json" ]; then
+            npm run generate-client
+            if [ -n "$(git status --porcelain src/client)" ]; then
+              echo "❌ Error: API Client is out of sync with the backend schema. Please run 'npm run generate-client' locally and commit the changes."
+              git status src/client
+              exit 1
+            fi
+          else
+            echo "⚠️ Warning: openapi.json not found, skipping sync verification."
+          fi

@@ -1,0 +1,77 @@
+name: 🚀 Contract Integrity
+
+on:
+  push:
+    branches:
+      - master
+      - stage
+      - develop
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  contract-drift-check:
+    name: OpenAPI Drift Check
+    runs-on: ubuntu-latest
+    env:
+      FRONTEND_HOST: http://localhost:5173
+      ENVIRONMENT: local
+      PROJECT_NAME: "FastAPI Backend Template"
+      STACK_NAME: fastapi-backend-template
+      API_V1_STR: /api/v1
+      SECRET_KEY: changethis
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      EMAIL_RESET_TOKEN_EXPIRE_HOURS: 48
+      SUPER_USER_NAME: Admin
+      SUPER_USER_EMAIL: admin@example.com
+      SUPER_USER_PASSWORD: changethis
+      POSTGRES_SERVER: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: fastapi_template_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: changethis
+      POSTGRES_SSLMODE: prefer
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 📦 Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 🛠️ Install Dependencies
+        run: uv sync --frozen
+
+      - name: 📄 Generate Current OpenAPI Schema
+        run: |
+          uv run python -c "
+          import json
+          from app.main import app
+          with open('openapi_current.json', 'w') as f:
+              json.dump(app.openapi(), f, indent=2, sort_keys=True)
+              f.write('\n')
+          "
+
+      - name: 🔍 Verify Schema Integrity
+        run: |
+          if [ -f "openapi.json" ]; then
+            if ! diff -q openapi.json openapi_current.json > /dev/null; then
+              echo "❌ ERROR: OpenAPI schema has drifted from the committed 'openapi.json'."
+              echo "Please run 'uv run python -c \"import json; from app.main import app; print(json.dumps(app.openapi(), indent=2))\" > openapi.json' locally and commit the changes."
+              diff -u openapi.json openapi_current.json
+              exit 1
+            else
+              echo "✅ OpenAPI schema is up to date."
+            fi
+          else
+            echo "⚠️ openapi.json not found in root. Generating it now..."
+            mv openapi_current.json openapi.json
+            echo "Please commit the newly created 'openapi.json'."
+            exit 1
+          fi

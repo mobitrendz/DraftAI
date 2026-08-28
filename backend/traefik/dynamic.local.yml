@@ -1,0 +1,33 @@
+http:
+  routers:
+    traefik:
+      rule: "Host(`traefik.fastapi-template.test`)"
+      service: api@internal
+
+    backend:
+      rule: "Host(`api.fastapi-template.test`)"
+      service: backend
+
+    pgadmin:
+      rule: "Host(`pgadmin.fastapi-template.test`)"
+      service: pgadmin
+
+    mail:
+      rule: "Host(`mail.fastapi-template.test`)"
+      service: mail
+
+  services:
+    backend:
+      loadBalancer:
+        servers:
+          - url: "http://backend:8000"
+
+    pgadmin:
+      loadBalancer:
+        servers:
+          - url: "http://pgadmin:80"
+
+    mail:
+      loadBalancer:
+        servers:
+          - url: "http://mailcatcher:1080"
